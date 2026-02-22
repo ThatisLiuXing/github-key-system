@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卡密验证系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo svg {
+            width: 80px;
+            height: 80px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input[type="text"].error {
+            border-color: #e74c3c;
+            background-color: #fdf2f2;
+        }
+        
+        input[type="text"].success {
+            border-color: #27ae60;
+            background-color: #f2fdf5;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stats {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .admin-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .admin-panel.show {
+            display: block;
+        }
+        
+        .key-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .key-item {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .key-item.used {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .badge-unused {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-used {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#667eea"/>
+            </svg>
+        </div>
+        
+        <h1>卡密验证系统</h1>
+        <p class="subtitle">请输入您的授权卡密进行验证</p>
+        
+        <div class="input-group">
+            <label for="keyInput">卡密</label>
+            <input 
+                type="text" 
+                id="keyInput" 
+                placeholder="XXXX-XXXX-XXXX-XXXX"
+                autocomplete="off"
+                maxlength="24"
+            >
+        </div>
+        
+        <button id="verifyBtn" onclick="verifyKey()">
+            验证卡密
+        </button>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalKeys">-</div>
+                <div class="stat-label">总卡密</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="usedKeys">-</div>
+                <div class="stat-label">已使用</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="availableKeys">-</div>
+                <div class="stat-label">可用</div>
+            </div>
+        </div>
+        
+        <div class="admin-panel" id="adminPanel">
+            <h3 style="margin-bottom: 10px; font-size: 14px;">卡密列表</h3>
+            <div class="key-list" id="keyList"></div>
+        </div>
+        
+        <div class="footer">
+            <p>Powered by GitHub Pages & Actions</p>
+            <p style="margin-top: 5px;">
+                <a href="#" onclick="toggleAdmin()" style="color: #999; text-decoration: none;">管理员入口</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 配置 - 在实际部署时修改这些值
+        const CONFIG = {
+            // GitHub 用户名
+            owner: 'YOUR_GITHUB_USERNAME',
+            // 仓库名
+            repo: 'YOUR_REPO_NAME',
+            // 分支
+            branch: 'main',
+            // 是否启用实时验证（需要 GitHub Token）
+            enableRealtime: false,
+            // GitHub Token（仅用于实时验证模式，建议通过环境变量或安全方式存储）
+            githubToken: null
+        };
+
+        let keysData = [];
+        let isAdmin = false;
+
+        // 格式化卡密输入
+        document.getElementById('keyInput').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            let formatted = '';
+            for (let i = 0; i < value.length && i < 16; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formatted += '-';
+                }
+                formatted += value[i];
+            }
+            e.target.value = formatted;
+        });
+
+        // 加载卡密数据
+        async function loadKeys() {
+            try {
+                const response = await fetch('keys.json');
+                if (!response.ok) {
+                    throw new Error('无法加载卡密数据');
+                }
+                keysData = await response.json();
+                updateStats();
+                if (isAdmin) {
+                    renderKeyList();
+                }
+            } catch (error) {
+                showMessage('加载数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 更新统计
+        function updateStats() {
+            const total = keysData.length;
+            const used = keysData.filter(k => k.used).length;
+            const available = total - used;
+            
+            document.getElementById('totalKeys').textContent = total;
+            document.getElementById('usedKeys').textContent = used;
+            document.getElementById('availableKeys').textContent = available;
+        }
+
+        // 验证卡密
+        async function verifyKey() {
+            const input = document.getElementById('keyInput');
+            const btn = document.getElementById('verifyBtn');
+            const key = input.value.trim();
+            
+            if (!key) {
+                showMessage('请输入卡密', 'error');
+                input.classList.add('error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>验证中...';
+            
+            // 模拟网络延迟
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const keyData = keysData.find(k => k.key === key);
+            
+            if (!keyData) {
+                showMessage('卡密不存在，请检查输入', 'error');
+                input.classList.add('error');
+                input.classList.remove('success');
+            } else if (keyData.used) {
+                showMessage(`该卡密已于 ${formatDate(keyData.usedAt)} 被使用`, 'error');
+                input.classList.add('error');
+                input.classList.remove('success');
+            } else {
+                // 标记为已使用
+                keyData.used = true;
+                keyData.usedAt = new Date().toISOString();
+                keyData.usedBy = getClientInfo();
+                
+                showMessage('✓ 卡密验证成功！感谢您的使用。', 'success');
+                input.classList.add('success');
+                input.classList.remove('error');
+                
+                updateStats();
+                if (isAdmin) {
+                    renderKeyList();
+                }
+                
+                // 如果启用了实时同步，尝试更新服务器
+                if (CONFIG.enableRealtime && CONFIG.githubToken) {
+                    await syncToServer();
+                }
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '验证卡密';
+        }
+
+        // 获取客户端信息
+        function getClientInfo() {
+            return {
+                userAgent: navigator.userAgent,
+                ip: 'unknown', // 前端无法直接获取IP
+                timestamp: new Date().toISOString()
+            };
+        }
+
+        // 格式化日期
+        function formatDate(isoString) {
+            if (!isoString) return '未知';
+            const date = new Date(isoString);
+            return date.toLocaleString('zh-CN');
+        }
+
+        // 显示消息
+        function showMessage(text, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.className = 'message show ' + type;
+            
+            setTimeout(() => {
+                msgEl.classList.remove('show');
+            }, 5000);
+        }
+
+        // 切换管理员模式
+        function toggleAdmin() {
+            const password = prompt('请输入管理员密码：');
+            if (password === 'admin123') { // 简单密码，生产环境请修改
+                isAdmin = !isAdmin;
+                document.getElementById('adminPanel').classList.toggle('show', isAdmin);
+                if (isAdmin) {
+                    renderKeyList();
+                }
+            } else if (password !== null) {
+                showMessage('密码错误', 'error');
+            }
+            return false;
+        }
+
+        // 渲染卡密列表
+        function renderKeyList() {
+            const listEl = document.getElementById('keyList');
+            listEl.innerHTML = '';
+            
+            // 倒序显示，最新的在前面
+            const sortedKeys = [...keysData].reverse();
+            
+            sortedKeys.forEach(key => {
+                const item = document.createElement('div');
+                item.className = 'key-item' + (key.used ? ' used' : '');
+                item.innerHTML = `
+                    <span>${key.key}</span>
+                    <span class="badge ${key.used ? 'badge-used' : 'badge-unused'}">
+                        ${key.used ? '已使用' : '未使用'}
+                    </span>
+                `;
+                listEl.appendChild(item);
+            });
+        }
+
+        // 同步到服务器（需要 GitHub Token）
+        async function syncToServer() {
+            // 这是一个示例实现，实际使用时需要根据 GitHub API 进行调整
+            console.log('同步到服务器...');
+            // 由于前端无法直接写入 GitHub，这里只是示例
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', loadKeys);
+
+        // 回车键提交
+        document.getElementById('keyInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyKey();
+            }
+        });
+    </script>
+</body>
+</html>
