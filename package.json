@@ -1,0 +1,28 @@
+{
+  "name": "github-key-system",
+  "version": "1.0.0",
+  "description": "基于 GitHub Actions 和 GitHub Pages 的卡密生成与验证系统",
+  "main": "index.js",
+  "scripts": {
+    "generate": "node scripts/generate-keys.js",
+    "verify": "node scripts/verify-key.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "license-key",
+    "github-actions",
+    "github-pages",
+    "activation-code",
+    "key-generator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/github-key-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/github-key-system/issues"
+  },
+  "homepage": "https://username.github.io/github-key-system"
+}
