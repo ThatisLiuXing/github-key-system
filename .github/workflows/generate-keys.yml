@@ -1,0 +1,145 @@
+name: Generate License Keys
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: '生成卡密数量'
+        required: true
+        default: '10'
+        type: string
+      prefix:
+        description: '卡密前缀 (可选)'
+        required: false
+        default: ''
+        type: string
+      length:
+        description: '卡密长度'
+        required: true
+        default: '16'
+        type: string
+
+jobs:
+  generate-keys:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Generate License Keys
+      id: generate
+      run: |
+        node << 'EOF'
+        const crypto = require('crypto');
+        const fs = require('fs');
+        
+        const count = parseInt('${{ github.event.inputs.count }}') || 10;
+        const prefix = '${{ github.event.inputs.prefix }}' || '';
+        const length = parseInt('${{ github.event.inputs.length }}') || 16;
+        
+        // 从环境变量获取密钥（用于签名）
+        const secretKey = process.env.KEY_SECRET || 'default-secret-key-change-in-production';
+        
+        function generateKey(prefix, length) {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let key = prefix;
+          const keyLength = length - prefix.length;
+          
+          for (let i = 0; i < keyLength; i++) {
+            if (i > 0 && i % 4 === 0) {
+              key += '-';
+            }
+            key += chars.charAt(Math.floor(Math.random() * chars.length));
+          }
+          
+          return key;
+        }
+        
+        function createHash(key) {
+          return crypto.createHmac('sha256', secretKey).update(key).digest('hex').substring(0, 16);
+        }
+        
+        const keys = [];
+        const timestamp = new Date().toISOString();
+        
+        for (let i = 0; i < count; i++) {
+          const key = generateKey(prefix, length);
+          const hash = createHash(key);
+          keys.push({
+            key: key,
+            hash: hash,
+            createdAt: timestamp,
+            used: false,
+            usedAt: null,
+            usedBy: null
+          });
+        }
+        
+        // 读取现有密钥
+        let existingKeys = [];
+        if (fs.existsSync('docs/keys.json')) {
+          existingKeys = JSON.parse(fs.readFileSync('docs/keys.json', 'utf8'));
+        }
+        
+        // 合并密钥
+        const allKeys = [...existingKeys, ...keys];
+        
+        // 保存到文件
+        fs.writeFileSync('docs/keys.json', JSON.stringify(allKeys, null, 2));
+        
+        // 生成纯文本版本（仅密钥）
+        const keyList = keys.map(k => k.key).join('\n');
+        fs.writeFileSync('docs/keys.txt', keyList);
+        
+        // 输出摘要
+        console.log(`Generated ${keys.length} license keys`);
+        console.log('Keys:');
+        keys.forEach(k => console.log(`  - ${k.key}`));
+        
+        // 设置输出
+        const output = {
+          count: keys.length,
+          keys: keys.map(k => k.key)
+        };
+        
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `keys=${JSON.stringify(output)}`);
+        fs.appendFileSync(process.env.GITHUB_ENV, `GENERATED_COUNT=${keys.length}`);
+        EOF
+      env:
+        KEY_SECRET: ${{ secrets.KEY_SECRET }}
+        
+    - name: Commit and Push Keys
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/keys.json docs/keys.txt
+        git commit -m "Generate ${{ env.GENERATED_COUNT }} license keys [skip ci]" || echo "No changes to commit"
+        git push
+        
+    - name: Upload Keys as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-keys-${{ github.run_number }}
+        path: |
+          docs/keys.json
+          docs/keys.txt
+        retention-days: 30
+        
+    - name: Summary
+      run: |
+        echo "## License Keys Generated" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **数量**: ${{ env.GENERATED_COUNT }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **前缀**: ${{ github.event.inputs.prefix || '无' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **长度**: ${{ github.event.inputs.length }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "密钥已保存到 ".github/keys.json" 和 "docs/keys.txt"" >> $GITHUB_STEP_SUMMARY
